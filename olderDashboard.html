@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guardian Ear Health Monitor Dashboard</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Chart.js for visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <style>
+        /* Custom styles for high legibility and large touch targets */
+        :root {
+            --primary: #4f46e5;
+            --secondary: #10b981;
+            --danger: #ef4444;
+            --background: #f9fafb;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            line-height: 1.4;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+
+        .alert-card {
+            background-color: #fef2f2; /* Light red background */
+            border-left: 6px solid var(--danger);
+        }
+
+        .good-status {
+            color: var(--secondary);
+        }
+
+        .warning-status {
+            color: var(--danger);
+        }
+
+        /* Large font sizes for clarity */
+        .value-large {
+            font-size: 2.5rem; /* 40px */
+            line-height: 1;
+        }
+        
+        @media (max-width: 640px) {
+            .value-large {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Header and User Status -->
+    <header class="mb-8">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-gray-800 tracking-tight mb-2">
+            Health Dashboard
+        </h1>
+        <p class="text-xl text-gray-600">
+            Monitoring for **Dr. Arthur Jenkins** | Device Status: <span id="device-status" class="font-semibold good-status">Connected</span>
+        </p>
+    </header>
+
+    <!-- Main Grid Layout -->
+    <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Column 1: Alerts and Tasks (Priority Section) -->
+        <div class="lg:col-span-1 space-y-6">
+            <h2 class="text-2xl font-semibold text-gray-700">Daily Tasks & Urgent Alerts</h2>
+
+            <!-- Urgent Alert Card -->
+            <div id="urgent-alert" class="card alert-card p-6 rounded-xl hidden">
+                <div class="flex items-center space-x-3 mb-2">
+                    <svg class="w-8 h-8 warning-status" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    <h3 class="text-2xl font-bold warning-status">URGENT ALERT</h3>
+                </div>
+                <p class="text-lg text-gray-700 font-medium" id="alert-message">Abnormal drop in SpO₂ detected. Please check user immediately.</p>
+            </div>
+
+            <!-- Task Reminders List -->
+            <div class="card p-6 rounded-xl">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Today's Reminders</h3>
+                <ul id="task-list" class="space-y-4">
+                    <!-- Tasks injected by JS -->
+                </ul>
+            </div>
+        </div>
+
+        <!-- Column 2 & 3: Key Vitals and Activity Cards -->
+        <div class="lg:col-span-2 grid grid-cols-2 gap-6">
+            
+            <!-- Vitals Row -->
+            <div class="col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <!-- VITAL 1: Heart Rate -->
+                <div class="card p-5 rounded-xl text-center">
+                    <p class="text-base text-gray-500 font-medium uppercase mb-2">Heart Rate (BPM)</p>
+                    <div class="value-large font-bold" id="hr-value">72</div>
+                    <p class="text-sm text-gray-500 mt-1 good-status">Normal range</p>
+                </div>
+                <!-- VITAL 2: Blood Oxygen -->
+                <div class="card p-5 rounded-xl text-center">
+                    <p class="text-base text-gray-500 font-medium uppercase mb-2">Blood Oxygen (SpO₂)</p>
+                    <div class="value-large font-bold" id="spo2-value">98%</div>
+                    <p class="text-sm text-gray-500 mt-1 good-status">Optimal</p>
+                </div>
+                <!-- VITAL 3: Temperature -->
+                <div class="card p-5 rounded-xl text-center">
+                    <p class="text-base text-gray-500 font-medium uppercase mb-2">Body Temperature</p>
+                    <div class="value-large font-bold" id="temp-value">98.6°F</div>
+                    <p class="text-sm text-gray-500 mt-1 good-status">Baseline</p>
+                </div>
+            </div>
+
+            <!-- Activity & Safety Row -->
+            <div class="col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <!-- ACTIVITY 1: Steps -->
+                <div class="card p-5 rounded-xl text-center">
+                    <p class="text-base text-gray-500 font-medium uppercase mb-2">Steps Today</p>
+                    <div class="value-large font-bold text-primary" id="steps-value">1,540</div>
+                    <p class="text-sm text-gray-500 mt-1">Goal: 3,000 steps</p>
+                </div>
+                <!-- ACTIVITY 2: Sleep Quality -->
+                <div class="card p-5 rounded-xl text-center">
+                    <p class="text-base text-gray-500 font-medium uppercase mb-2">Last Night's Sleep</p>
+                    <div class="value-large font-bold text-primary" id="sleep-value">7h 15m</div>
+                    <p class="text-sm text-gray-500 mt-1 good-status">Good quality</p>
+                </div>
+                <!-- SAFETY 3: Fall Detection Status -->
+                <div class="card p-5 rounded-xl text-center">
+                    <p class="text-base text-gray-500 font-medium uppercase mb-2">Fall Status</p>
+                    <div class="value-large font-bold good-status" id="fall-status-value">OK</div>
+                    <p class="text-sm text-gray-500 mt-1">No falls detected in 24h</p>
+                </div>
+            </div>
+            
+            <!-- Trend Visualization Container -->
+            <div class="col-span-2 card p-6 rounded-xl">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">7-Day Heart Rate Trend (BPM)</h3>
+                <div id="hr-chart-container" class="bg-white h-64 flex items-center justify-center rounded-lg">
+                    <!-- Canvas element will be injected here by Chart.js -->
+                </div>
+            </div>
+
+        </div> <!-- End of Column 2 & 3 -->
+
+    </main>
+
+    <footer class="mt-8 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
+        Guardian Ear Device Project Concept Dashboard
+    </footer>
+
+    <!-- JavaScript for Mock Data and Interaction -->
+    <script>
+        const tasks = [
+            { id: 1, text: "Take Morning Medication (8:00 AM)", completed: true },
+            { id: 2, text: "Check Blood Pressure (10:30 AM)", completed: false },
+            { id: 3, text: "Walk 15 minutes (2:00 PM)", completed: false },
+            { id: 4, text: "Call Daughter (4:00 PM)", completed: false }
+        ];
+
+        const taskListEl = document.getElementById('task-list');
+        const urgentAlertEl = document.getElementById('urgent-alert');
+        const hrValueEl = document.getElementById('hr-value');
+        const spo2ValueEl = document.getElementById('spo2-value');
+        const tempValueEl = document.getElementById('temp-value');
+        
+        // --- Utility Functions ---
+
+        // Function to handle retries for API calls (Exponential Backoff)
+        async function fetchWithRetry(url, options = {}, retries = 3) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return await response.json();
+                } catch (error) {
+                    if (i < retries - 1) {
+                        const delay = Math.pow(2, i) * 1000; // 1s, 2s, 4s
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        console.error("API call failed after multiple retries:", error);
+                        throw error;
+                    }
+                }
+            }
+        }
+        
+        // Function to display a simple modal message (replaces alert())
+        function showModalMessage(title, message) {
+            const modalHtml = `
+                <div id="custom-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex justify-center items-center">
+                    <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm mx-4">
+                        <h4 class="text-xl font-bold mb-4 text-gray-800">${title}</h4>
+                        <p class="text-gray-700 mb-6">${message}</p>
+                        <button onclick="document.getElementById('custom-modal').remove()" 
+                                class="w-full bg-primary hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        // --- Task List Rendering ---
+
+        function renderTasks() {
+            taskListEl.innerHTML = '';
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between p-3 rounded-lg transition duration-150 ' + (task.completed ? 'bg-green-50' : 'bg-white hover:bg-gray-50 border border-gray-200');
+                li.innerHTML = `
+                    <span class="text-lg ${task.completed ? 'line-through text-gray-500' : 'text-gray-800'}">${task.text}</span>
+                    <button data-id="${task.id}" ${task.completed ? 'disabled' : ''}
+                            class="toggle-task-btn ${task.completed ? 'bg-gray-300 cursor-not-allowed' : 'bg-secondary hover:bg-green-600'} text-white font-semibold py-2 px-4 rounded-full text-sm transition duration-150 h-10 w-10 flex items-center justify-center">
+                        ${task.completed ? 
+                            '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' : 
+                            'Done'
+                        }
+                    </button>
+                `;
+                taskListEl.appendChild(li);
+            });
+
+            document.querySelectorAll('.toggle-task-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const id = parseInt(e.currentTarget.dataset.id);
+                    toggleTaskCompletion(id);
+                });
+            });
+        }
+
+        function toggleTaskCompletion(id) {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                task.completed = !task.completed;
+                renderTasks();
+                if (task.completed) {
+                    showModalMessage("Task Complete!", `Great job! You finished the task: "${task.text.split('(')[0].trim()}."`);
+                }
+            }
+        }
+
+        // --- Mock Vitals Update ---
+
+        function updateVitals() {
+            // Simulate minor fluctuations in data
+            const hr = 70 + Math.floor(Math.random() * 8); // 70-77
+            const spo2 = 95 + Math.floor(Math.random() * 4); // 95-98
+            const temp = (98.0 + Math.random() * 1.0).toFixed(1); // 98.0-99.0
+            const steps = 1500 + Math.floor(Math.random() * 100);
+            
+            hrValueEl.textContent = hr;
+            spo2ValueEl.textContent = `${spo2}%`;
+            tempValueEl.textContent = `${temp}°F`;
+            document.getElementById('steps-value').textContent = steps.toLocaleString();
+
+            // Set colors based on thresholds (simple logic for demonstration)
+            hrValueEl.classList.toggle('warning-status', hr > 90 || hr < 60);
+            spo2ValueEl.classList.toggle('warning-status', spo2 < 96);
+            tempValueEl.classList.toggle('warning-status', parseFloat(temp) > 99.5);
+            
+            // Trigger critical alert for low SpO2
+            if (spo2 < 95) {
+                 urgentAlertEl.classList.remove('hidden');
+                 document.getElementById('alert-message').textContent = `CRITICAL: SpO₂ at ${spo2}%. Check user immediately.`;
+            } else {
+                 urgentAlertEl.classList.add('hidden');
+            }
+        }
+
+        // --- Chart Rendering ---
+        
+        let hrChart = null; // Variable to hold the chart instance
+
+        function generateMockHrData() {
+            const data = [];
+            for (let i = 0; i < 7; i++) {
+                // Generate heart rates between 65 and 85 BPM
+                data.push(Math.floor(Math.random() * 21) + 65);
+            }
+            return data;
+        }
+
+        function renderHrTrendChart() {
+            const container = document.getElementById('hr-chart-container');
+            // Clear existing content and create canvas
+            container.innerHTML = '<canvas id="hrChart"></canvas>';
+            const ctx = document.getElementById('hrChart').getContext('2d');
+            
+            const heartRateData = generateMockHrData();
+            const labels = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'];
+
+            if (hrChart) {
+                hrChart.destroy(); // Destroy previous chart instance if it exists
+            }
+
+            hrChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Average Daily BPM',
+                        data: heartRateData,
+                        borderColor: '#4f46e5', // var(--primary)
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.3, // Smoother line
+                        fill: true,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#4f46e5'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // Allows the chart to fill the container height
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y + ' BPM';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 60, // Set minimum Y-axis for better visual focus on changes
+                            max: 90, // Set maximum Y-axis
+                            title: {
+                                display: true,
+                                text: 'Heart Rate (BPM)',
+                                color: '#4b5563'
+                            },
+                            grid: {
+                                color: '#e5e7eb'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // --- Initialization ---
+
+        window.onload = function() {
+            renderTasks();
+            updateVitals();
+            renderHrTrendChart(); // Render the chart on load
+            
+            // Update vitals every 5 seconds (simulating real-time data)
+            setInterval(updateVitals, 5000); 
+        };
+        
+        /* NOTE: For a real application, Firebase Firestore would be initialized here 
+         and used for persistent storage of tasks and real-time vital signs using 
+         onSnapshot listeners, rather than local mock data.
+        */
+    </script>
+</body>
+</html>

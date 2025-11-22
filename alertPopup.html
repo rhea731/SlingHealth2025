@@ -62,7 +62,7 @@
                         <tr>
                             <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient ID</th>
                             <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Heart Rate (BPM)</th>
-                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SpO2 (%)</th>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Oxygen (%)</th>
                             <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BP (mmHg)</th>
                             <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         </tr>
@@ -167,8 +167,8 @@
             HR: { min: 50, max: 100, unit: 'BPM' },
             SpO2: { min: 90, unit: '%' },
             Temp: { max: 100.4, unit: '°F' },
-            BP_S: { min: 90, max: 140, unit: 'mmHg (Systolic)' },
-            BP_D: { max: 90, unit: 'mmHg (Diastolic)' }
+            BP_S: { min: 90, max: 140 }, // Systolic thresholds
+            BP_D: { max: 90 } // Diastolic threshold
         };
 
         // Simulated Patient Data (Initial data set to trigger alert for demonstration)
@@ -217,6 +217,7 @@
 
             // Helper to extract systolic and diastolic BP
             const [bpSystolic, bpDiastolic] = vitalsData.BP.split('/').map(Number);
+            let bpIssue = ''; // To store the simplified BP status
 
             // Check Heart Rate (HR)
             if (vitalsData.HR < THRESHOLDS.HR.min) {
@@ -230,7 +231,7 @@
             // Check Oxygen Saturation (SpO2)
             if (vitalsData.SpO2 < THRESHOLDS.SpO2.min) {
                 isCritical = true;
-                criticalVitals.push(`SpO2: ${vitalsData.SpO2}${THRESHOLDS.SpO2.unit} (Too Low)`);
+                criticalVitals.push(`Oxygen Saturation: ${vitalsData.SpO2}${THRESHOLDS.SpO2.unit} (Too Low)`); // Changed SpO2 to Oxygen Saturation
             }
 
             // Check Temperature (Temp) - Assuming > max is concerning
@@ -239,20 +240,25 @@
                 criticalVitals.push(`Temperature: ${vitalsData.Temp}${THRESHOLDS.Temp.unit} (Too High)`);
             }
 
-            // Check Blood Pressure (Systolic)
-            if (bpSystolic < THRESHOLDS.BP_S.min) {
-                isCritical = true;
-                criticalVitals.push(`BP Systolic: ${bpSystolic} ${THRESHOLDS.BP_S.unit} (Too Low)`);
-            } else if (bpSystolic > THRESHOLDS.BP_S.max) {
-                isCritical = true;
-                criticalVitals.push(`BP Systolic: ${bpSystolic} ${THRESHOLDS.BP_S.unit} (Too High)`);
+            // --- Simplified Blood Pressure Check ---
+            const isSystolicLow = bpSystolic < THRESHOLDS.BP_S.min;
+            const isDiastolicLow = bpDiastolic < 60; // Usually 60 is the clinical cutoff for diastolic hypotension
+
+            const isSystolicHigh = bpSystolic > THRESHOLDS.BP_S.max;
+            const isDiastolicHigh = bpDiastolic > THRESHOLDS.BP_D.max;
+
+            if (isSystolicLow || isDiastolicLow) {
+                bpIssue = 'Too Low';
+            } else if (isSystolicHigh || isDiastolicHigh) {
+                bpIssue = 'Too High';
             }
 
-            // Check Blood Pressure (Diastolic)
-            if (bpDiastolic > THRESHOLDS.BP_D.max) {
+            if (bpIssue) {
                 isCritical = true;
-                criticalVitals.push(`BP Diastolic: ${bpDiastolic} ${THRESHOLDS.BP_D.unit} (Too High)`);
+                // Simplified BP alert text
+                criticalVitals.push(`Blood Pressure: ${vitalsData.BP} mmHg (${bpIssue})`); 
             }
+            // --- End Simplified Blood Pressure Check ---
 
 
             // Render Alert or Normal Status
@@ -358,9 +364,9 @@
                     break;
                 case 'BP':
                     const [s, d] = value.split('/').map(Number);
-                    if (s > T.BP_S.max || s < T.BP_S.min || d > T.BP_D.max) {
+                    if (s > T.BP_S.max || s < T.BP_S.min || d > T.BP_D.max || d < 60) {
                         status = { class: 'bg-red-500', isCritical: true };
-                    } else if (s > T.BP_S.max - 10 || s < T.BP_S.min + 10 || d > T.BP_D.max - 5) {
+                    } else if (s > T.BP_S.max - 10 || s < T.BP_S.min + 10 || d > T.BP_D.max - 5 || d < 65) {
                         status = { class: 'bg-yellow-500', isCritical: false };
                     }
                     break;
@@ -381,7 +387,7 @@
             const bpStatus = getVitalStatus('BP', vitalsData.BP);
             
             container.appendChild(createVitalCard('Heart Rate', `${vitalsData.HR} BPM`, hrStatus.class, hrStatus.isCritical));
-            container.appendChild(createVitalCard('Oxygen (SpO2)', `${vitalsData.SpO2}%`, spo2Status.class, spo2Status.isCritical));
+            container.appendChild(createVitalCard('Oxygen (SpO2)', `${vitalsData.SpO2}%`, spo2Status.class, spo2Status.isCritical)); // Updated title
             container.appendChild(createVitalCard('Temperature', `${vitalsData.Temp} °F`, tempStatus.class, tempStatus.isCritical));
             container.appendChild(createVitalCard('Blood Pressure', vitalsData.BP, bpStatus.class, bpStatus.isCritical));
             
